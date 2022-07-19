@@ -1,0 +1,16 @@
+# load packages
+library(Signac)
+library(Seurat)
+library(EnsDb.Hsapiens.v86)
+library("dplyr")
+library(BSgenome.Hsapiens.UCSC.hg38)
+set.seed(1234)
+dyn.load("/apps/hdf5-serial/gnu/9.1/1.12.0/lib/libhdf5_hl.so.200")
+library(hdf5r)
+library(GenomicRanges)
+library(GenomeInfoDb)
+library(qs)
+set.seed(123)
+library(sctransform)
+
+#We choose 18-64 as the reference sample since it has the most features
