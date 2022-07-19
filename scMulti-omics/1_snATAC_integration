@@ -13,4 +13,90 @@ library(qs)
 set.seed(123)
 library(sctransform)
 
-#We choose 18-64 as the reference sample since it has the most features
+# Load data
+#We choose 18-64 as the reference sample to ensure that there are common features across the eight datasets since it has the most features. So we can identify as much ATAC features as possible
+setwd("/fs/ess/PCON0022/Yuzhou/Shane_ATAC/Primary_data_processing")
+counts <- Read10X_h5("18-64_results/filtered_feature_bc_matrix.h5")
+fragpath <- "18-64_results/atac_fragments.tsv.gz"
+
+# create a Seurat object containing the RNA adata
+multi <- CreateSeuratObject(counts = counts$`Gene Expression`, assay = "RNA")
+
+# Get annotation information
+annotation <- GetGRangesFromEnsDb(ensdb = EnsDb.Hsapiens.v86)
+seqlevelsStyle(annotation) <- "UCSC"
+
+# Create ATAC assay and add it to the object
+  multi[["peaks"]] <- CreateChromatinAssay(
+    counts = counts$Peaks,
+    sep = c(":", "-"),
+    fragments = fragpath,
+    annotation = annotation
+  )
+                            
+# QC
+DefaultAssay(multi) <- "peaks"
+multi <- NucleosomeSignal(multi)
+multi <- TSSEnrichment(multi)
+p <- VlnPlot(
+  object = multi,
+  features = c(
+    "nCount_RNA",
+    "nCount_peaks",
+    "TSS.enrichment",
+    "nucleosome_signal"
+    ),
+  ncol = 4,
+  pt.size = 0
+)
+ 
+ ggsave(
+   plot = p,
+   filename = paste0(names(object)[i], "-qc-vlnplot.png"),
+   device = "png",
+   dpi = 150,
+   width = 12,
+   height = 10,
+   units = "in"
+ )
+ 
+  multi <- subset(
+    x = multi,
+    subset = nCount_peaks < 40000 &
+      nCount_RNA < 75000 &
+      nCount_peaks > 1000 &
+      nCount_RNA > 1000 &
+      nucleosome_signal < 2.5 &
+      TSS.enrichment > 1
+  )
+  p1 <- VlnPlot(
+    object = multi,
+    features = c(
+      "nCount_RNA",
+      "nCount_peaks",
+      "TSS.enrichment",
+      "nucleosome_signal"
+    ),
+    ncol = 4,
+    pt.size = 0
+  )
+  setwd("/fs/ess/PCON0022/guoqi/NC-snrna/atac_output")
+  ggsave(
+    plot = p1,
+    filename = "18-64_results-qc_ed_-vlnplot.png",
+    device = "png",
+    dpi = 150,
+    width = 12,
+    height = 10,
+    units = "in"
+  )
+  # RNA
+  DefaultAssay(multi) <- "RNA"
+  multi <- SCTransform(multi)
+  multi <- RunPCA(multi)
+  DefaultAssay(multi) <- "peaks"
+  multi <- RunTFIDF(multi)
+  multi <- FindTopFeatures(multi, min.cutoff = 5)
+  multi <- RunSVD(multi)
+  qsave(multi, "/fs/ess/PCON0022/guoqi/NC-snrna/atac_output/reference-18_64.qs")
+  
