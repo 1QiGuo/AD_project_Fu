@@ -136,4 +136,137 @@ names(target_list)<-target_file
 setwd("/fs/ess/PCON0022/guoqi/NC-snrna/atac_output")
 qsave(target_list,"preqc_7samples.qs")#note, first two samples are filtered, so should rerun
 #QC
+p<-VlnPlot(
+  object = target_list[[1]],
+  features = c("nCount_peaks", "nFeature_peaks"),
+  ncol = 2,
+  pt.size = 0
+)
+target_list[[1]] <- subset(target_list[[1]], nCount_peaks > 1000 & nCount_peaks < 30000)
+p<-VlnPlot(
+  object = target_list[[2]],
+  features = c("nCount_peaks", "nFeature_peaks"),
+  ncol = 2,
+  pt.size = 0
+)
+ target_list[[2]] <- subset(target_list[[2]], nCount_peaks > 1000 & nCount_peaks < 30000)
 
+p<-VlnPlot(
+  object = target_list[[3]],
+  features = c("nCount_peaks", "nFeature_peaks"),
+  ncol = 2,
+  pt.size = 0
+)
+target_list[[3]] <- subset(target_list[[3]], nCount_peaks > 1000 & nCount_peaks < 40000)
+
+p<-VlnPlot(
+  object = target_list[[4]],
+  features = c("nCount_peaks", "nFeature_peaks"),
+  ncol = 2,
+  pt.size = 0
+)
+target_list[[4]] <- subset(target_list[[4]], nCount_peaks > 1000 & nCount_peaks < 40000)
+p<-VlnPlot(
+  object = target_list[[5]],
+  features = c("nCount_peaks", "nFeature_peaks"),
+  ncol = 2,
+  pt.size = 0
+)
+target_list[[5]] <- subset(target_list[[5]], nCount_peaks > 1000 & nCount_peaks < 30000)
+
+p<-VlnPlot(
+  object = target_list[[6]],
+  features = c("nCount_peaks", "nFeature_peaks"),
+  ncol = 2,
+  pt.size = 0
+)
+target_list[[6]] <- subset(target_list[[6]], nCount_peaks > 1000 & nCount_peaks < 30000)
+p<-VlnPlot(
+  object = target_list[[7]],
+  features = c("nCount_peaks", "nFeature_peaks"),
+  ncol = 2,
+  pt.size = 0
+)
+target_list[[7]] <- subset(target_list[[7]], nCount_peaks > 1000 & nCount_peaks < 30000)
+
+#Normalization and dimensional reduction
+for(i in 1:7){
+  target_list[[i]]<-FindTopFeatures(target_list[[i]], min.cutoff = 10)
+  target_list[[i]] <- RunTFIDF(target_list[[i]])
+  target_list[[i]] <- RunSVD(target_list[[i]])
+}
+setwd("/fs/ess/PCON0022/guoqi/NC-snrna/atac_output/New_results_qc/")
+qsave(target_list,"qc_7samples.qs")
+target_list<-qread("qc_7samples.qs")
+#annotation
+#id
+target_list[[1]]$orig.ident<-"1-1"
+target_list[[2]]$orig.ident<-"1-7"
+target_list[[3]]$orig.ident<-"2-10"
+target_list[[4]]$orig.ident<-"2-3"
+target_list[[5]]$orig.ident<-"2-5"
+target_list[[6]]$orig.ident<-"2-8"
+target_list[[7]]$orig.ident<-"T4857"
+#stage
+target_list[[1]]$stage<-"Control"
+target_list[[2]]$stage<-"Late_AD"
+target_list[[3]]$stage<-"Late_AD"
+target_list[[4]]$stage<-"Mid-AD"
+target_list[[5]]$stage<-"Control"
+target_list[[6]]$stage<-"Mid-AD"
+target_list[[7]]$stage<-"Mid-AD"
+#condition
+target_list[[1]]$condition<-"Control"
+target_list[[2]]$condition<-"AD"
+target_list[[3]]$condition<-"AD"
+target_list[[4]]$condition<-"AD"
+target_list[[5]]$condition<-"Control"
+target_list[[6]]$condition<-"AD"
+target_list[[7]]$condition<-"AD"
+#18-64
+multi<-qread("newreference-18_64.qs")
+multi$condition<-"Control"
+multi$stage<-"Control"
+multi$orig.ident<-"18-64"
+
+#Integration:
+pbmc.combined<-merge(multi, c(target_list[[1]],target_list[[2]],
+                               target_list[[3]],target_list[[4]],
+                               target_list[[5]],target_list[[6]],target_list[[7]]),
+                      add.cell.ids=c("18_64","1_1","1_7","2_10","2_3","2_5","2_8","T4857"))
+# process the combined dataset
+pbmc.combined <- FindTopFeatures(pbmc.combined, min.cutoff = 10)
+pbmc.combined <- RunTFIDF(pbmc.combined)
+pbmc.combined <- RunSVD(pbmc.combined)
+pbmc.combined <- RunUMAP(pbmc.combined, reduction = "lsi", dims = 2:30)
+p1 <- DimPlot(pbmc.combined, group.by = "orig.ident")
+
+# find integration anchors
+resul_8<-append(multi,target_list)
+add.cell.ids=c("18_64","1_1","1_7","2_10","2_3","2_5","2_8","T4857")
+
+for(i in 1:8){
+  resul_8[[i]] <- RenameCells(
+    resul_8[[i]],
+    add.cell.id =add.cell.ids[i]
+  )
+}
+
+integration.anchors <- FindIntegrationAnchors(
+  object.list = resul_8,
+  anchor.features = rownames(multi),
+  reduction = "rlsi",
+  dims = 2:30
+)
+
+# integrate LSI embeddings
+integrated <- IntegrateEmbeddings(
+  anchorset = integration.anchors,
+  reductions = pbmc.combined[["lsi"]],
+  new.reduction.name = "integrated_lsi",
+  dims.to.integrate = 1:30
+)
+# create a new UMAP using the integrated embeddings
+integrated <- RunUMAP(integrated, reduction = "integrated_lsi", dims = 2:30)
+p2 <- DimPlot(integrated, group.by = "orig.ident")
+qsave(integrated,"atac_8_integration.qs")
