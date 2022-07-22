@@ -1,0 +1,85 @@
+#load library
+dyn.load("/apps/hdf5-serial/gnu/9.1/1.12.0/lib/libhdf5_hl.so.200")
+library(hdf5r)
+#sptial plot based on cell proportion
+setwd("/fs/ess/PCON0022/guoqi/NC/output")
+
+############load spatial object
+load("object.2_8_n.RData")
+load("object_T4857_n.RData")
+load("object.2_3_n.RData")
+load("object.2_5_n.RData")
+load("object.18_64_n.RData")
+load("object.1_1_n.RData")
+
+#create other two objects
+setwd("/fs/project/PAS1475/Yuzhou_Chang/Fu_lab_data/Visium/raw_data/1-7/outs/")
+object.1_7 <-
+  Load10X_Spatial(data.dir = ".", filename = "filtered_feature_bc_matrix.h5")
+wd <-
+  "/fs/project/PAS1475/Yuzhou_Chang/Fu_lab_data/Visium/raw_data/2-10/outs"
+object.2_10 <-
+  Load10X_Spatial(data.dir = wd, filename = "filtered_feature_bc_matrix.h5")
+#---annotation
+#category(control,AD)
+object.1_7$category <- "AD"
+object.2_10$category <- "AD"
+#stage
+object.1_7$stage <- "Late-AD"
+object.2_10$stage <- "Late-AD"
+#id
+object.1_7$patientID <- "1_7"
+object.2_10$patientID <- "2_10"
+# object.2_10 <-
+#   SCTransform(object.2_10, assay = "Spatial", verbose = FALSE)
+# object.1_7 <-
+#   SCTransform(object.1_7, assay = "Spatial", verbose = FALSE)
+save(object.1_7,file="/fs/ess/PCON0022/guoqi/NC/output/object.1_7_n.RData")
+save(object.1_7,file="/fs/ess/PCON0022/guoqi/NC/output/object.2_10_n.RData")
+
+my.all.object.list <- list(
+  object.1_1 = object.1_1,
+  object.1_7 = object.1_7,
+  object.18_64 = object.18_64,
+  object.2_10 = object.2_10,
+  object.2_3 = object.2_3,
+  object.2_5 = object.2_5,
+  object.2_8 = object.2_8,
+  object_T4857 = object_T4857
+)
+
+#load csv
+setwd("/fs/ess/PCON0022/guoqi/NC-snrna/Spatial")
+decon_re<-list.files(".",pattern = ".csv")
+decon_list<-list()
+for(i in 1:8){
+  decon_list[[i]]<-read.csv(decon_re[i],row.names = 1)
+  colnames(decon_list[[i]])[2]<-"Endothelial.cells"
+}
+names(decon_list)<-decon_re
+
+#add cell proportion meta
+#function
+Spatial_pro<-function(object,cell_name,sample){
+  xy.cor <- object@images$slice1@coordinates 
+  tmp.meta <- object@meta.data 
+  tmp.meta <- tmp.meta[rownames(xy.cor),] 
+  xy.cor <- as.data.frame(cbind(xy.cor, tmp = tmp.meta[,cell_name])) 
+  colnames(xy.cor)[ncol(xy.cor)] <- cell_name 
+  p<- ggplot(xy.cor,aes(x = col, y = row,color = as.numeric(xy.cor[,cell_name])))+  
+    geom_point(size = 3) + theme_void() + scale_color_gradient(low="#F6F4F2", high="#A44908") + #scale_color_gradientn(colors = colorRampPalette(c("#000000","#0185E1","#06C501","#DD7105","#C30303"))(n =5))+  
+    labs(col = cell_name,title = cell_name)+scale_y_reverse() + scale_x_reverse()#+ coord_flip() #+scale_y_reverse()  
+  ggsave(p, filename = paste0("/fs/ess/PCON0022/guoqi/NC-snrna/Spatial/Spatial_cellpro/",sample,cell_name,".tiff"), 
+         device ="tiff", dpi = 150 , width = 10.5, height = 10) 
+}
+
+#result
+spatial_decon_list<-list()
+celltype<-colnames(decon_list[[1]])
+for(i in 1:8){
+  spatial_decon_list[[i]]<-AddMetaData(my.all.object.list[[i]],decon_list[[i]])
+  sample<-paste0(as.character(spatial_decon_list[[i]]$patientID[1]),"_")
+  for(j in 1:7){
+    Spatial_pro(spatial_decon_list[[i]],celltype[j],sample)
+  }
+}
