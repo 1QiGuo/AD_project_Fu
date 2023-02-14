@@ -56,7 +56,6 @@ violin <- function(object, metadata, geneset, outputname) {
   ggsave(
     plot = p,
     filename = paste0(
-      "/fs/ess/PCON0022/guoqi/AD/Wenjie/results/",
       outputname,
       "_violin.tiff"
     ),
