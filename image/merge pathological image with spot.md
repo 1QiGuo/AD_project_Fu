@@ -1,6 +1,19 @@
 # function
 
 ```{python}
+import numpy as np
+import pandas as pd
+import skimage.io as skio
+import cv2
+import matplotlib.pyplot as plt
+import os
+from PIL import Image
+from matplotlib.colors import ListedColormap
+import matplotlib.colors as clr
+import seaborn as sns
+import math
+
+#function
 def merge_transformed_RGB_to_spot_and_save(spot_row_in_fullres,
                                           spot_col_in_fullres,
                                           #max_row, max_col,
@@ -35,29 +48,28 @@ def merge_transformed_RGB_to_spot_and_save(spot_row_in_fullres,
         cv2.circle(cv_object_9_t2, 
                    (spot_col_in_fullres.iloc[index], spot_row_in_fullres.iloc[index]),
                       plot_spot_radius,
-                      color=(int(modulescore_scale[modulescore_colname].iloc[index]), 0, 256),
+                      color=(int(modulescore_scale[modulescore_colname].iloc[index]), 0, 255),
                       thickness=-1)
     #add transparancy
     alpha = 0.3
     cv_object_f = cv2.addWeighted(cv_object_9_t2, alpha, overlay, 1 - alpha, 0)
     #export
-    cv2.imwrite(result_path+sample_name + 'merged.tiff', cv2.cvtColor(cv_object_f, cv2.COLOR_RGB2BGR))
+    cv2.imwrite(result_path+sample_name + '_merged.tiff', cv2.cvtColor(cv_object_f, cv2.COLOR_RGB2BGR))
     #add figure legend
     fig, ax = plt.subplots()
-    cmap = clr.LinearSegmentedColormap.from_list('custom blue', ['#0000ff','#ff00ff'], N=255)
+    cmap = clr.LinearSegmentedColormap.from_list('custom blue', ['#0000ff','#ff00ff'], N=256)
     img = ax.imshow(cv_object_f, 
                 vmin=modulescore[modulescore_colname].min(), 
                 vmax=modulescore[modulescore_colname].max(), 
                 cmap=cmap)
     cbar = fig.colorbar(img)
     cbar.ax.set_ylabel('Label', rotation=90)
-    plt.savefig(result_path+sample_name + 'merged_colorbar.pdf')
-    return modulescore_scale
+    plt.savefig(result_path+sample_name + '_merged_colorbar.pdf')
 ```
 
 # output
 
-## 2-3
+## 2-3 as example
 ```{python }
 result_path="/bmbl_data/qiguo/AD/wenjie/result_Apr16"
 imagepath="/bmbl_data/qiguo/AD/AD_home/spatial_rawdata/spatial_8/image/stack/B1 2-3 Stack.tif"
@@ -102,4 +114,4 @@ module_scale=merge_transformed_RGB_to_spot_and_save(tissue_positioin_23["pxl_row
                                          )
 ```
 
-## 1-1
+
