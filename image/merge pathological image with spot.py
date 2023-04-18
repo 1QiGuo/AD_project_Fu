@@ -1,6 +1,6 @@
 # function
 
-```{python}
+# load package
 import numpy as np
 import pandas as pd
 import skimage.io as skio
@@ -66,12 +66,11 @@ def merge_transformed_RGB_to_spot_and_save(spot_row_in_fullres,
     cbar = fig.colorbar(img)
     cbar.ax.set_ylabel('Label', rotation=90)
     plt.savefig(result_path+sample_name + '_merged_colorbar.pdf')
-```
 
+    
 # output
-
 ## 2-3 as example
-```{python }
+
 result_path="/bmbl_data/qiguo/AD/wenjie/result_Apr16"
 imagepath="/bmbl_data/qiguo/AD/AD_home/spatial_rawdata/spatial_8/image/stack/B1 2-3 Stack.tif"
 tissue_positioin_23 = pd.read_csv('/bmbl_data/qiguo/AD/AD_home/spatial_rawdata/spatial_8/image/2_3/2_3_tissue_position_filtered.csv', 
@@ -113,6 +112,6 @@ module_scale=merge_transformed_RGB_to_spot_and_save(tissue_positioin_23["pxl_row
                                        "2_3_geneset3",
                                        diameter2_3#should be integer instead of float
                                          )
-```
+
 
 
