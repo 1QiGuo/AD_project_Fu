@@ -46,10 +46,11 @@ def merge_transformed_RGB_to_spot_and_save(spot_row_in_fullres,
     modulescore_scale[modulescore_colname]=modulescore_scale[modulescore_colname]*255/max_score
     for index in range(len(modulescore_scale[modulescore_colname])):
         cv2.circle(cv_object_9_t2, 
-                   (spot_col_in_fullres.iloc[index], spot_row_in_fullres.iloc[index]),
-                      plot_spot_radius,
-                      color=(int(modulescore_scale[modulescore_colname].iloc[index]), 0, 255),
-                      thickness=-1)
+                   (spot_col_in_fullres.iloc[index], 
+                    spot_row_in_fullres.iloc[index]),
+                    plot_spot_radius,
+                    color=(int(modulescore_scale[modulescore_colname].iloc[index]), 0, 255),
+                    thickness=-1)
     #add transparancy
     alpha = 0.3
     cv_object_f = cv2.addWeighted(cv_object_9_t2, alpha, overlay, 1 - alpha, 0)
@@ -59,9 +60,9 @@ def merge_transformed_RGB_to_spot_and_save(spot_row_in_fullres,
     fig, ax = plt.subplots()
     cmap = clr.LinearSegmentedColormap.from_list('custom blue', ['#0000ff','#ff00ff'], N=256)
     img = ax.imshow(cv_object_f, 
-                vmin=modulescore[modulescore_colname].min(), 
-                vmax=modulescore[modulescore_colname].max(), 
-                cmap=cmap)
+                    vmin=modulescore[modulescore_colname].min(), 
+                    vmax=modulescore[modulescore_colname].max(), 
+                    cmap=cmap)
     cbar = fig.colorbar(img)
     cbar.ax.set_ylabel('Label', rotation=90)
     plt.savefig(result_path+sample_name + '_merged_colorbar.pdf')
