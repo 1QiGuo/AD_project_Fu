@@ -384,3 +384,97 @@ for(i in 1:6){
   g
   dev.off() 
 }
+
+#--------------------------------------------------------Violin plot between control and AD
+#plot function
+violin_ad_control <- function(object, metadata, geneset) {
+  DefaultAssay(object) <- "SCT"
+  ct_object <- subset(object, subset = stage == "control")
+  ct_object <- AddModuleScore(object = ct_object,
+                              features = geneset,
+                              name = 'CD_Features')
+  violin_data_control <-
+    data.frame(
+      barcode = colnames(ct_object),
+      category = ct_object$category,
+      modulescore = ct_object$CD_Features1
+    )
+  #ad
+  ad_object <- subset(object, cells = metadata$Barcode)
+  ad_object <- AddModuleScore(object = ad_object,
+                              features = geneset,
+                              name = 'CD_Features')
+  violin_data <- data.frame()
+  violin_data <-
+    data.frame(
+      barcode = colnames(ad_object),
+      category = ad_object$category,
+      modulescore = ad_object$CD_Features1
+    )
+  violin_data <- rbind(violin_data, violin_data_control)
+  category <- c("AD", "control")
+  violin_data$category <-
+    factor(violin_data$category, levels = category)
+  library(ggpubr)
+  library(ggplot2)
+  p <-
+    ggplot(violin_data, aes(x = category, y = modulescore, fill = category)) +
+    geom_violin(trim = FALSE) +
+    stat_summary(fun.data = data_summary) +
+    #scale_fill_manual(values=c("#56B4E9","#97f7a7","#f58e62"))+
+    theme_classic() +
+    stat_compare_means(label = "p.signif", method = "wilcox.test") +
+    theme(text = element_text(size = 15))
+  return(p)
+}
+# Customizing the output
+setwd("/fs/ess/PCON0022/guoqi/AD/Wenjie/results")
+pdf("annotation_sixgroups_geneset2_OLIG_nonoise_nolevel4_violin_adcontrol.pdf", 
+    width = 10, height = 10, 
+    bg = "white" ,        
+    colormodel = "cmyk"  )  
+# Creating a plot
+p<-violin_ad_control(sample6.combined_withnonoise,spot_annotation_new,geneset3)
+p
+# Closing the graphical device
+dev.off() 
+
+#statistic summary
+statistical_compare2_adcontrol_funtion <-
+  function(object,
+           metadata,
+           geneset) {
+    violin_data <- data.frame()
+    ct_object <- subset(object, subset = stage == "control")
+    ct_object <- AddModuleScore(object = ct_object,
+                                features = geneset,
+                                name = 'CD_Features')
+    violin_data_control <-
+      data.frame(
+        barcode = colnames(ct_object),
+        category = ct_object$category,
+        modulescore = ct_object$CD_Features1
+      )
+    #ad
+    midad_object <- subset(object, cells = metadata$Barcode)
+    midad_object <- AddModuleScore(object = midad_object,
+                                   features = geneset,
+                                   name = 'CD_Features')
+    violin_data <-
+      data.frame(
+        barcode = colnames(midad_object),
+        category = midad_object$category,
+        modulescore = midad_object$CD_Features1
+      )
+    violin_data <- rbind(violin_data, violin_data_control)
+    category <- c("AD", "control")
+    p <-
+      as.data.frame(compare_means(modulescore ~ category,  data = violin_data, method = "wilcox.test"))
+    colnames(p)[1]<-"geneset3_modulescore"
+    summary<-violin_data%>%group_by(category)%>%
+      summarise(avg = mean(modulescore),sd=sd(modulescore))
+    summary<-cbind(summary,p)
+    return(summary)
+  }
+stat_adcontrol<-statistical_compare2_adcontrol_funtion(sample6.combined_withnonoise,spot_annotation_new,geneset3)
+write.csv(stat_adcontrol,"/fs/ess/PCON0022/guoqi/AD/Wenjie/results/statistical_summary/	statistical_adcontrol_nonoise_nolevel4_geneset3_addolig.csv")
