@@ -1,4 +1,4 @@
-# title: "README: PLCG2 Spatial Transcriptomics Analysis"
+# README: PLCG2 Spatial Transcriptomics Analysis
 
 author: "Qi Guo"
 date: "2025-06-30"
