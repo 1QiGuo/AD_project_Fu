@@ -1,9 +1,8 @@
----
-title: "README: PLCG2 Spatial Transcriptomics Analysis"
+# title: "README: PLCG2 Spatial Transcriptomics Analysis"
+
 author: "Qi Guo"
 date: "2025-06-30"
 output: html_document
----
 
 ## Overview
 
