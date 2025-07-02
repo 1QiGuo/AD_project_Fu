@@ -1,4 +1,4 @@
-# README: PLCG2 Spatial Transcriptomics Analysis
+# PLCG2 Spatial Transcriptomics Analysis
 
 author: "Qi Guo"
 
