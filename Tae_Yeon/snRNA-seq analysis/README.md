@@ -1,5 +1,9 @@
 # Multiome snRNA–snATAC Integration Pipeline
 
+author: "Qi Guo"
+
+date: "2026-01-14"
+
 ## Introduction
 This pipeline integrates single-nucleus RNA-seq (snRNA-seq) and single-nucleus ATAC-seq (snATAC-seq) data from multiple human brain samples.  
 It performs quality control, dataset integration, multimodal (RNA + ATAC) analysis, clustering, and cell-type annotation.
