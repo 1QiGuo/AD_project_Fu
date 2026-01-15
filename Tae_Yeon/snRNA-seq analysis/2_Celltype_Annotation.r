@@ -1,128 +1,206 @@
-#------from OSC
-###########new qc_0.2
-int<-FindClusters(int,resolution = 0.2, graph.name = "wsnn", algorithm = 3)
-p3 <- DimPlot(int, reduction = "wnn.umap", group.by = "wsnn_res.0.2", label = TRUE, label.size = 6, repel = TRUE) + ggtitle("WNN")
-ggsave(
-  plot = p3,
-  filename = "/fs/ess/PCON0022/guoqi/NC-snrna/atac_output/New_results_qc/UMAP_wnn_0.2_cluster.tiff",
-  device = "tiff",
-  dpi = 150,
-  width = 11,
-  height = 10,
-  units = "in"
-)
-p4 <- DimPlot(int, reduction = "wnn.umap", group.by = "wsnn_res.0.2", repel = TRUE) + ggtitle("WNN")
-ggsave(
-  plot = p4,
-  filename = "/fs/ess/PCON0022/guoqi/NC-snrna/atac_output/New_results_qc/UMAP_wnn_0.2_cluster2.tiff",
-  device = "tiff",
-  dpi = 150,
-  width = 11,
-  height = 10,
-  units = "in"
-)
-p2 <- DimPlot(int, reduction = "wnn.umap", group.by = "stage",  repel = TRUE) + ggtitle("WNN")
-ggsave(
-  plot = p2,
-  filename = "/fs/ess/PCON0022/guoqi/NC-snrna/atac_output/New_results_qc/UMAP_wnn_0.2_stage.tiff",
-  device = "tiff",
-  dpi = 150,
-  width = 11,
-  height = 10,
-  units = "in"
-)
-p1 <- DimPlot(int, reduction = "wnn.umap", group.by = "orig.ident") + ggtitle("WNN")
+#Integrate six RNA samples
+library(qs)
+library("Seurat")
+set.seed(1234)
+library(hdf5r)
+
+object.int<-qread("rna6_integration.qs")
+#annotation
+#function
+annotation<-function(marker,object,assay){
+  library(pheatmap)
+  marker<-as.data.frame(marker)
+  marker_f<-melt(marker,measure.vars = colnames(marker),variable_name = "variable",value.name="marker")
+  marker_f<-na.omit(marker_f)
+  avg_data<-data.frame(rep(0,length(intersect(rownames(object),marker_f$marker))))
+  print(length(intersect(rownames(object),marker_f$marker)))
+  for(i in sort(unique(Idents(object)))){
+    object_temp<-subset(object,idents=i)
+    df<-AverageExpression(object_temp, assays = assay,features = marker_f$marker)
+    df<-as.data.frame(df[[1]])
+    avg_data<-cbind(avg_data,df)
+  }
+  avg_data<-avg_data[,-1]
+  colnames(avg_data)<-sort(unique(Idents(object)))
+  if(length(intersect(rownames(object),marker_f$marker))!=length(marker_f$marker)){
+    dep_gene<-setdiff(marker_f$marker,rownames(object))
+    for(i in dep_gene){
+      marker_f<-marker_f[-which(marker_f$marker==i),]
+    }
+  }
+  marker_f$variable<-factor(marker_f$variable,levels = unique(marker_f$variable))
+  sample = data.frame(sample = marker_f$variable)
+  color = sample
+  levels(color) <- Polychrome::dark.colors(length(unique(marker_f$variable)))
+  color <- list(sample = levels(color))
+  names(color$sample)<- levels(sample$sample)
+  separation_sequence <- cumsum(table(marker_f$variable))
+  gaps_row = separation_sequence
+  return_list<-list(avg_data,sample,color,separation_sequence)
+  names(return_list)<-c("avg_data","sample","color","separation_sequence")
+  return(return_list)
+}
+
+#cluster
+#enhance cluster so that cluster 4 can be divided
+object.int <- FindNeighbors(object.int, dims = 1:10)
+temp<-FindClusters(object.int,resolution = 0.8)
+#FeaturePlot(deepmaps, features =c("VWF","CLDN5","MBP","MOBP") )
+#FeaturePlot(temp, features =c("VWF","CLDN5","MBP","MOBP") )
+p1 <- DimPlot(temp, group.by = "seurat_clusters",label=T,label.size = 7, repel = TRUE) 
 ggsave(
   plot = p1,
-  filename = "/fs/ess/PCON0022/guoqi/NC-snrna/atac_output/New_results_qc/UMAP_wnn_0.2_id.tiff",
+  filename = "UMAP_cluster0.8_withlabel.tiff",
   device = "tiff",
   dpi = 150,
   width = 11,
   height = 10,
   units = "in"
 )
-p0 <- DimPlot(int, reduction = "wnn.umap", group.by = "condition") + ggtitle("WNN")
+p2 <- DimPlot(temp, group.by = "seurat_clusters", repel = TRUE)
 ggsave(
-  plot = p0,
-  filename = "/fs/ess/PCON0022/guoqi/NC-snrna/atac_output/New_results_qc/UMAP_wnn_0.2_condition.tiff",
+  plot = p2,
+  filename = "UMAP_cluster0.8_nolabel.tiff",
   device = "tiff",
   dpi = 150,
   width = 11,
   height = 10,
   units = "in"
 )
-
-##########heatmap
-#newqc_new marker list
+#heatmap
+DefaultAssay(temp)<-"SCT"
+Idents(temp)<-temp$seurat_clusters
+#load markers
 setwd("/fs/ess/PCON0022/guoqi/Data_raw/Brain_Fu_lab")
 marker <- read_excel("New gene list.xlsx", sheet = 1)
 marker<-as.data.frame(marker)
-marker_f<-melt(marker,measure.vars = colnames(marker),variable_name = "Celltype",value.name="marker")
-marker_f<-na.omit(marker_f)
-marker_f<-marker_f[-which(marker_f$Celltype=="Pericyte"),]
-
-avg_data<-data.frame(rep(0,23))
-for(i in sort(unique(int$wsnn_res.0.2))){
-  object<-subset(int,idents=i)
-  df<-AverageExpression(object, assays = "SCT",features = marker_f$value)
-  df<-as.data.frame(df$SCT)
-  avg_data<-cbind(avg_data,df)
-}
-avg_data<-avg_data[,-1]
-colnames(avg_data)<-sort(unique(int$wsnn_res.0.2))
-# marker_f<-marker_f[-which(marker_f$value==c("AMBP")),]
-# marker_f<-marker_f[-which(marker_f$value==c("COX4I2")),]
-#create pheatmap data
-marker_f$Celltype<-factor(marker_f$Celltype,levels = unique(marker_f$Celltype))
-
-sample = data.frame(sample = marker_f$Celltype)
-color = sample
-#install.packages("Polychrome")
-levels(color) <- Polychrome::dark.colors(7)
-color <- list(sample = levels(color))
-names(color$sample)<- levels(sample$sample)
-
-separation_sequence <- cumsum(table(marker_f$Celltype))
-gaps_row = separation_sequence
-p <- pheatmap(avg_data[,c("1","8","11","12","14","16","17","7","9","10","13","15","3","6","0","2","4","5","18")],
-              color = colorRampPalette(c("blue","white","red"))(100),
-              cluster_rows = F,
-              annotation_row = sample,
-              annotation_colors = color,
-              cluster_cols = F,
-              scale = "row",border_color = "NA",
-              gaps_row = separation_sequence,fontsize = 15
+marker_nop<-marker[,-8]
+test<-annotation(marker_nop,temp,"SCT")
+p0<-pheatmap(test[[1]][,c("1","2","11","16","19","21","5","10","17","18","3","4","0",
+                          "6","7","8","9","12","14","15","13","20")],
+             color = colorRampPalette(c("blue","white","red"))(100),
+             cluster_rows = F,
+             annotation_row = test[[2]],
+             annotation_colors = test[[3]],
+             cluster_cols = F,
+             scale = "row",border_color = "NA",
+             gaps_row = test[[4]],fontsize = 15
 )
+
 ggsave(
-  plot = p,
-  filename = "/fs/ess/PCON0022/guoqi/NC-snrna/atac_output/New_results_qc/Heatmap_0.2_newmarker.tiff",
+  plot = p0,
+  filename = "Heatmap_6samples_defaultparameter.tiff",
   device = "tiff",
   dpi = 150,
   width = 9,
   height = 12,
   units = "in"
 )
-qsave(int,"/fs/ess/PCON0022/guoqi/NC-snrna/atac_output/New_results_qc/wnn.qs")
+setwd("/fs/ess/PCON0022/guoqi/NC/Revision/Output")
+qsave(temp,"rna6_integration.qs")
+temp<-qread("rna6_integration.qs")
+#annotation
+temp$celltype<-"unkown"
+temp$celltype[which(temp$seurat_clusters==1)]<-"EX"
+temp$celltype[which(temp$seurat_clusters==2)]<-"EX"
+temp$celltype[which(temp$seurat_clusters==11)]<-"EX"
+temp$celltype[which(temp$seurat_clusters==16)]<-"EX"
+temp$celltype[which(temp$seurat_clusters==19)]<-"EX"
+temp$celltype[which(temp$seurat_clusters==21)]<-"EX"
 
-###############annotation
-int$celltype<-"unkown"
-int$celltype[which(int$wsnn_res.0.2==3)]<-"Astrocytes"
-int$celltype[which(int$wsnn_res.0.2==18)]<-"Endothelial cells&Pericyte"
-int$celltype[which(int$wsnn_res.0.2==16)]<-"Excitatory neurons"
-int$celltype[which(int$wsnn_res.0.2==17)]<-"Excitatory neurons"
-int$celltype[which(int$wsnn_res.0.2==1)]<-"Excitatory neurons"
-int$celltype[which(int$wsnn_res.0.2==8)]<-"Excitatory neurons"
-int$celltype[which(int$wsnn_res.0.2==11)]<-"Excitatory neurons"
-int$celltype[which(int$wsnn_res.0.2==12)]<-"Excitatory neurons"
-int$celltype[which(int$wsnn_res.0.2==14)]<-"Excitatory neurons"
-int$celltype[which(int$wsnn_res.0.2==7)]<-"Inhibitory neurons"
-int$celltype[which(int$wsnn_res.0.2==9)]<-"Inhibitory neurons"
-int$celltype[which(int$wsnn_res.0.2==10)]<-"Inhibitory neurons"
-int$celltype[which(int$wsnn_res.0.2==13)]<-"Inhibitory neurons"
-int$celltype[which(int$wsnn_res.0.2==15)]<-"Inhibitory neurons"
-#int$celltype[which(int$wsnn_res.0.2==18)]<-"Inhibitory neurons"
-int$celltype[which(int$wsnn_res.0.2==6)]<-"Microglia"
-int$celltype[which(int$wsnn_res.0.2==0)]<-"Oligodendrocytes"
-int$celltype[which(int$wsnn_res.0.2==2)]<-"Oligodendrocytes"
-int$celltype[which(int$wsnn_res.0.2==4)]<-"Oligodendrocytes"
-int$celltype[which(int$wsnn_res.0.2==5)]<-"OPC"
+temp$celltype[which(temp$seurat_clusters==5)]<-"IN"
+temp$celltype[which(temp$seurat_clusters==10)]<-"IN"
+temp$celltype[which(temp$seurat_clusters==17)]<-"IN"
+temp$celltype[which(temp$seurat_clusters==18)]<-"IN"
+temp$celltype[which(temp$seurat_clusters==3)]<-"AG"
+temp$celltype[which(temp$seurat_clusters==4)]<-"MG"
+temp$celltype[which(temp$seurat_clusters==0)]<-"Oligo"
+temp$celltype[which(temp$seurat_clusters==6)]<-"Oligo"
+temp$celltype[which(temp$seurat_clusters==7)]<-"Oligo"
+temp$celltype[which(temp$seurat_clusters==8)]<-"Oligo"
+temp$celltype[which(temp$seurat_clusters==9)]<-"Oligo"
+temp$celltype[which(temp$seurat_clusters==12)]<-"Oligo"
+temp$celltype[which(temp$seurat_clusters==14)]<-"Oligo"
+temp$celltype[which(temp$seurat_clusters==15)]<-"Oligo"
+temp$celltype[which(temp$seurat_clusters==13)]<-"OPC"
+temp$celltype[which(temp$seurat_clusters==20)]<-"Endo"
+p3 <- DimPlot(temp, group.by = "celltype",label=T,label.size = 7, repel = TRUE) 
+ggsave(
+  plot = p3,
+  filename = "UMAP_celltype_withlabel.tiff",
+  device = "tiff",
+  dpi = 150,
+  width = 11,
+  height = 10,
+  units = "in"
+)
+p4 <- DimPlot(temp, group.by = "orig.ident",label=T,label.size = 7, repel = TRUE) 
+ggsave(
+  plot = p4,
+  filename = "UMAP_sample_withlabel.tiff",
+  device = "tiff",
+  dpi = 150,
+  width = 11,
+  height = 10,
+  units = "in"
+)
+
+umap<-temp@reductions$umap@cell.embeddings
+umap<-as.data.frame(umap)
+umap<-cbind(umap,celltype=temp$celltype)
+umap$`temp$celltype`<-temp$seurat_clusters
+colnames(umap)[3]<-"cluster"
+write.csv(umap,"seurat_6integrate_coordinate.csv")
+umap<-read.csv("seurat_6integrate_coordinate.csv")
+
+#ari
+install.packages("MLVSBM")
+library("MLVSBM")
+dim(temp)
+setwd("/fs/ess/PCON0022/guoqi/NC-snrna/atac_output/New_results_qc")
+int<-qread("wnn.qs")
+dim(int)
+Idents(int)<-int$orig.ident
+int_6<-subset(int,cells=colnames(temp))
+new_cell<-gsub("-","_",colnames(temp))
+temp<-RenameCells(temp,new.names = new_cell)
+cell_int<-intersect(colnames(temp),colnames(int))
+temp_eva<-subset(temp,cells=cell_int)
+int_6_eva<-subset(int,cells=cell_int)
+ARI(temp_eva$celltype,int_6_eva$celltype)
+0.9300079
+annotation<-data.frame(barcode=colnames(temp),celltype=temp$celltype)
+rownames(annotation)<-NULL
+write.csv(annotation,"/fs/ess/PCON0022/guoqi/NC/Revision/Output/scRNA_6_annotation.csv",row.names=FALSE,quote=FALSE)
+read.csv("")
+#output h5 for deconvolution
+write10xCounts(
+  '/fs/ess/PCON0022/guoqi/NC/Revision/Output/scRNA_6.h5',
+  temp@assays$SCT@counts,
+  barcodes = colnames(temp),
+  gene.id = rownames(temp),
+  gene.symbol = rownames(temp),
+  gene.type = "Gene Expression",
+  overwrite = FALSE,
+  type = c("HDF5"),
+  genome = "unknown",
+  version = c("2"),
+  chemistry = "Single Cell 3' v3",
+  original.gem.groups = 1L,
+  library.ids = "custom"
+)
+#annotation
+rna6<-temp
+# temp$celltype[which(temp$celltype=="AG")]<-"Astrocyte"
+# temp$celltype[which(temp$celltype=="Endo")]<-"Endothelial cells&Pericyte"
+# temp$celltype[which(temp$celltype=="EX")]<-"Excitatory neurons"
+# temp$celltype[which(temp$celltype=="IN")]<-"Inhibitory neurons"
+# temp$celltype[which(temp$celltype=="MG")]<-"Microglia"
+# temp$celltype[which(temp$celltype=="Oligo")]<-"Oligodendrocytes"
+# ARI(temp$celltype,int_6)
+
+#test for deconvolution
+test <- Read10X_h5("./Output/scRNA_6.h5")
+test <- CreateSeuratObject(counts = test)
+
+write.csv(table(temp$celltype,temp$condition),"snrna_6_ctproportion.csv")
