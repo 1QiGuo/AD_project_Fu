@@ -14,6 +14,8 @@ The workflow is organized into four R scripts executed in order.
 
 ## Input
 
+Raw count data can be found at: https://zenodo.org/records/18252374?preview=1&token=eyJhbGciOiJIUzUxMiIsImlhdCI6MTc2ODQ5MDM1OCwiZXhwIjoxNzk5OTcxMTk5fQ.eyJpZCI6ImFhZjE0MzY1LTA0NWEtNDQ3ZS04MGUzLTk1MWE1YzFmMjgxYiIsImRhdGEiOnt9LCJyYW5kb20iOiIxYTg3MjlhZGQ1OGJjY2QzOGY4NWEzMjdhMDE5NmZmNiJ9.YsGq0rtZhzGu9ha8f_Oe8n4K7SWfrFkRmIDHDj7xuCNNN-QgfdzS4vVTFFPzpIVMad1d4_P9XtJSWYIFZWbYHg
+
 ### snRNA-seq (MTX format)
 Each sample directory must contain:
 - `barcodes.tsv.gz`
