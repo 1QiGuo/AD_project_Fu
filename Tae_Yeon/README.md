@@ -40,3 +40,6 @@ data structure and metadata fields.
 ## Reproducibility
 All quantitative results reported in the manuscript can be reproduced by
 running the provided scripts on the full dataset described in the Methods.
+
+## License
+This code is released under the MIT License.
