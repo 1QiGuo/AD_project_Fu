@@ -10,8 +10,7 @@ all_file_name <- list.files()
 all_file_name<-all_file_name[-c(2,4)]
 object <- list()
 for(i in 1:6){
-  a <-
-    Read10X_h5(paste0(all_file_name[i], "/filtered_feature_bc_matrix.h5"))
+  a <- Read10X(data.dir = file.path(all_file_name[i]))
   x <-
     CreateSeuratObject(counts = a[[1]],project =strsplit(all_file_name[i],"_",)[[1]][1] ,min.cells = 3, min.features = 200)
   x[["percent.mt"]] <- PercentageFeatureSet(x, pattern = "^MT-")
