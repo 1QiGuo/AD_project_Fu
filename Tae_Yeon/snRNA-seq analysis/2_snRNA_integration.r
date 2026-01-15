@@ -8,14 +8,20 @@ library(hdf5r)
 setwd("/fs/ess/PCON0022/Yuzhou/Shane_ATAC/Primary_data_processing")
 all_file_name <- list.files()
 object <- list()
-for(i in 1:8){
-  a <-
-    Read10X_h5(paste0(all_file_name[i], "/filtered_feature_bc_matrix.h5"))
-  x <-
-    CreateSeuratObject(counts = a[[1]],project =strsplit(all_file_name[i],"_",)[[1]][1] ,min.cells = 3, min.features = 200)
+for (i in 1:8) {
+  # each folder contains barcodes.tsv.gz, features.tsv.gz, matrix.mtx.gz
+  data_dir <- file.path(all_file_name[i])
+  counts <- Read10X(data.dir = data_dir)
+  x <- CreateSeuratObject(
+    counts = counts,
+    project = strsplit(all_file_name[i], "_")[[1]][1],
+    min.cells = 3,
+    min.features = 200
+  )
   x[["percent.mt"]] <- PercentageFeatureSet(x, pattern = "^MT-")
-  object[i]<-x
+  object[[i]] <- x
 }
+
 names(object)<-all_file_name
 qsave(object,"rna8objects_filter_preqc.qs")
 
