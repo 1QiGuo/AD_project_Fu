@@ -1,12 +1,12 @@
-# Multiome snRNA–snATAC Integration Pipeline
+# snRNA analysis Pipeline
 
 author: "Qi Guo"
 
 date: "2026-01-14"
 
 ## Introduction
-This pipeline integrates single-nucleus RNA-seq (snRNA-seq) and single-nucleus ATAC-seq (snATAC-seq) data from multiple human brain samples.  
-It performs quality control, dataset integration, multimodal (RNA + ATAC) analysis, clustering, and cell-type annotation.
+This pipeline integrates single-nucleus RNA-seq (snRNA-seq) data from multiple human brain samples.  
+It performs quality control, dataset integration, clustering, and cell-type annotation.
 
 The workflow is organized into four R scripts executed in order.
 
@@ -22,9 +22,6 @@ Each sample directory must contain:
 - `features.tsv.gz`
 - `matrix.mtx.gz`
 
-### snATAC-seq
-- `filtered_feature_bc_matrix.h5`
-- `atac_fragments.tsv.gz`
 
 ### Reference and metadata
 - Human genome: hg38
@@ -35,9 +32,7 @@ Each sample directory must contain:
 
 ## Output
 
-- Integrated snATAC-seq object (`atac_8_integration.qs`)
-- Integrated snRNA-seq object (`rna8_integration.qs`)
-- Multimodal WNN-integrated object (`wnn.qs`)
+- Integrated snRNA-seq object (`rna6_integration.qs`)
 - UMAP plots (clusters, sample ID, condition, stage)
 - Heatmap of marker gene expression
 - Final cell-type labels stored in `celltype`
@@ -46,16 +41,8 @@ Each sample directory must contain:
 
 ## Steps
 
-### 1. snATAC-seq Integration
-- Perform QC on ATAC data
-- Normalize using TF-IDF
-- Reduce dimensions with LSI
-- Integrate all ATAC datasets using a reference sample
-- Generate ATAC UMAP
 
----
-
-### 2. snRNA-seq Integration
+### 1. snRNA-seq Integration
 - Load RNA data from MTX files
 - Perform QC filtering
 - Normalize using SCTransform
@@ -64,15 +51,7 @@ Each sample directory must contain:
 
 ---
 
-### 3. Multimodal Integration (RNA + ATAC)
-- Match cells shared between RNA and ATAC
-- Combine RNA (PCA) and ATAC (LSI) information
-- Build weighted nearest neighbor (WNN) graph
-- Run WNN UMAP and clustering
-
----
-
-### 4. Clustering and Cell-Type Annotation
+### 2. Clustering and Cell-Type Annotation
 - Tune clustering resolution
 - Visualize UMAP by cluster and metadata
 - Generate marker gene heatmap
@@ -82,7 +61,5 @@ Each sample directory must contain:
 
 ## Notes
 
-- Sample **18–64** is used as the ATAC reference
-- RNA data are read from MTX format, not HDF5
 - QC thresholds may vary between samples
 - Cell-type annotation is marker-based and manually curated
